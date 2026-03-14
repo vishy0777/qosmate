@@ -7,7 +7,7 @@ STOP=99
 USE_PROCD=1
 
 VERSION="dev"
-UPD_CHANNEL="release"
+UPD_CHANNEL="branch=fq-pie"
 
 EXTRA_COMMANDS="check_version update auto_setup auto_setup_noninteractive validate_custom_rules health_check"
 EXTRA_HELP="
@@ -30,10 +30,10 @@ IFS="$DEFAULT_IFS"
 ### repo-related vars
 
 # GH repo author (can be overriden for testing)
-: "${QOSMATE_REPO_AUTHOR:=hudra0}"
+: "${QOSMATE_REPO_AUTHOR:=vishy0777}"
 
-MAIN_BRANCH_BACKEND=main
-MAIN_BRANCH_FRONTEND=main
+MAIN_BRANCH_BACKEND=fq-pie
+MAIN_BRANCH_FRONTEND=fq-pie
 
 # GH API URLs (can be overridden)
 : "${QOSMATE_GH_API_URL:="https://api.github.com/repos/${QOSMATE_REPO_AUTHOR}"}"
@@ -329,7 +329,7 @@ fetch_qosmate_component() {
     rm -rf "${upd_dir}/${QOSMATE_REPO_AUTHOR}-${repo_name}-"*
     try_mkdir -p "$upd_dir" || return 1
 
-    uclient-fetch "$fetch_tarball_url" -O "${tarball}" 2> "$ucl_err_file" &&
+    uclient-fetch -U "${QOSMATE_REPO_AUTHOR}-qosmate" "$fetch_tarball_url" -O "${tarball}" 2> "$ucl_err_file" &&
     grep -q "Download completed" "$ucl_err_file" &&
     tar -C "${upd_dir}" -xzf "${tarball}" &&
     extract_dir="$(find "${upd_dir}/" -type d -name "${QOSMATE_REPO_AUTHOR}-${repo_name}-*")" &&
@@ -374,7 +374,7 @@ get_gh_ref_data() {
             channel="$1" ptrn="$2" branches="$3" main_branch="$4" err_file="$5"
         case "${channel}" in
             release)
-                uclient-fetch "${gh_url_api}/releases" -O- 2> "$err_file" | {
+                uclient-fetch -U "${QOSMATE_REPO_AUTHOR}-qosmate" "${gh_url_api}/releases" -O- 2> "$err_file" | {
                     jsonfilter -e '@[@.prerelease=false]' |
                     jsonfilter -a -e "@[@.target_commitish=\"${main_branch}\"].tag_name"
                     cat 1>/dev/null
@@ -382,7 +382,7 @@ get_gh_ref_data() {
             snapshot|branch=*|commit=*)
                 for branch in ${branches}
                 do
-                    uclient-fetch "${gh_url_api}/commits?sha=${branch}" -O- 2> "$err_file" | {
+                    uclient-fetch -U "${QOSMATE_REPO_AUTHOR}-qosmate" "${gh_url_api}/commits?sha=${branch}" -O- 2> "$err_file" | {
                         jsonfilter -e '@[@.commit]["url"]' |
                         sed 's/.*\///' # only leave the commit hash
                         cat 1>/dev/null
@@ -495,7 +495,7 @@ get_gh_ref_data() {
                 gh_ref="$gh_hash"
             else
                 branches="$(
-                    uclient-fetch "${gh_url_api}/branches" -O-  2> "$ref_ucl_err_file" |
+                    uclient-fetch -U "${QOSMATE_REPO_AUTHOR}-qosmate" "${gh_url_api}/branches" -O-  2> "$ref_ucl_err_file" |
                         { jsonfilter -e '@[@]["name"]'; cat 1>/dev/null; }
                 )"
                 [ -n "$branches" ] || {
