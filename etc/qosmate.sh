@@ -1394,6 +1394,9 @@ setup_game_qdisc() {
         "fq_codel")
         tc qdisc add dev "$DEV" parent "1:11" handle 10: fq_codel memory_limit $((RATE*200/8)) interval "${INTVL}ms" target "${TARG}ms" quantum $((MTU * 2))
         ;;
+        "fq_pie")
+        tc qdisc add dev "$DEV" parent "1:11" handle 10: fq_pie memory_limit $((RATE*200/8)) target "${TARG}ms" quantum $((MTU * 2))
+        ;;
         "netem")
             # Only apply NETEM if this direction is enabled
             if [ "$NETEM_DIRECTION" = "both" ] || \
@@ -1487,6 +1490,8 @@ setup_hfsc() {
             tc qdisc add dev "$DEV" parent "1:$i" cake $nongameqdiscoptions
         elif [ "$nongameqdisc" = "fq_codel" ]; then
             tc qdisc add dev "$DEV" parent "1:$i" fq_codel memory_limit "$((RATE*200/8))" interval "${INTVL}ms" target "${TARG}ms" quantum "$((MTU * 2))"
+        elif [ "$nongameqdisc" = "fq_pie" ]; then
+            tc qdisc add dev "$DEV" parent "1:$i" fq_pie memory_limit "$((RATE*200/8))" target "${TARG}ms" quantum "$((MTU * 2))"
         else
             print_msg -err "Unsupported qdisc for non-game traffic: $nongameqdisc"
             exit 1
@@ -1907,7 +1912,7 @@ setup_htb() {
 # Validate gameqdisc choice (used by HFSC and Hybrid)
 if [ "$ROOT_QDISC" = "hfsc" ] || [ "$ROOT_QDISC" = "hybrid" ]; then
     case "$gameqdisc" in
-        drr|qfq|pfifo|bfifo|red|fq_codel|netem) ;; # Supported qdiscs
+        drr|qfq|pfifo|bfifo|red|fq_codel|fq_pie|netem) ;; # Supported qdiscs
         *)
             print_msg -warn "Unsupported gameqdisc '$gameqdisc' selected in config. Reverting to 'pfifo'."
             gameqdisc="pfifo" # Revert to a simple default as fallback
